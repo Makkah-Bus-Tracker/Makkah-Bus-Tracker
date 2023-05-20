@@ -11,7 +11,7 @@ public class BusTracker {
     public static void main(String[] args) {
         try {
           Connection conn = DatabaseConnection.getInstance().getConnection();
-            conn.setSchema("SYSTEM");
+
             Statement stmt = conn.createStatement();
 
            UserAuth userAuth = new UserAuth(conn);
@@ -117,21 +117,33 @@ class UserAuth {
 class MainMenu {
     private final Connection conn;
     private final int userId;
-    private ResultSet rs;
+    private MenuComponent mainMenu;
 
     MainMenu(Connection conn, int userId) {
         this.conn = conn;
         this.userId = userId;
+        buildMenu();
+    }
+
+    private void buildMenu() {
+        mainMenu = new Menu("Main Menu");
+
+        MenuComponent bookBusMenuItem = new MenuItem("1- Book a bus");
+        MenuComponent busTrackerMenuItem = new MenuItem("2- Bus tracker");
+        MenuComponent busCapacityMenuItem = new MenuItem("3- Bus capacity");
+        MenuComponent logoutMenuItem = new MenuItem("4- Logout");
+
+        mainMenu.add(bookBusMenuItem);
+        mainMenu.add(busTrackerMenuItem);
+        mainMenu.add(busCapacityMenuItem);
+        mainMenu.add(logoutMenuItem);
     }
 
     void showMainMenu() throws Exception {
         BusBooking busBooking = new BusBooking(conn, userId);
 
         while (true) {
-            System.out.println("1. Book a bus");
-            System.out.println("2. Bus tracker");
-            System.out.println("3. Bus Capacity");
-            System.out.println("4. Logout");
+            mainMenu.display();
             System.out.print("Enter your choice: ");
             int choice = BusTracker.scanner.nextInt();
             BusTracker.scanner.nextLine();
@@ -155,7 +167,6 @@ class MainMenu {
         }
     }
 }
-
 class BusBooking {
     private final Connection conn;
     private final int userId;
@@ -175,7 +186,8 @@ class BusBooking {
             int seatsAvailable = rs.getInt("seats_available");
             System.out.printf("%-10s | %-17s | %-15s | %-10s |%-10s | %d%n",
                     rs.getInt("id"), rs.getString("departure_station"), rs.getString("arrival_station"),
-                    rs.getString("time"), rs.getInt("seats_available"),rs.getInt("Price"));        }
+                    rs.getString("time"), rs.getInt("seats_available"),rs.getInt("Price"));
+        }
 
         System.out.println("Enter the bus number you want to book, or type '0' to go back to the main menu:");
         int busNumber = BusTracker.scanner.nextInt();
@@ -194,24 +206,15 @@ class BusBooking {
             int seatsAvailable = rs.getInt("seats_available");
 
             if (seatsAvailable > 0) {
-                String updateSql = "UPDATE buses SET seats_available = ? WHERE id = ?";
-                pstmt = conn.prepareStatement(updateSql);
-                pstmt.setInt(1, seatsAvailable - 1);
-                pstmt.setInt(2, busNumber);
-                pstmt.executeUpdate();
 
-                String insertSql = "INSERT INTO bookings (user_id, bus_id) VALUES (?, ?)";
-                pstmt = conn.prepareStatement(insertSql);
-                pstmt.setInt(1, userId);
-                pstmt.setInt(2, busNumber);
-                pstmt.executeUpdate();
-
-                System.out.println("Bus booked successfully!");
+                SeatSelection seatSelection = new SeatSelection(conn, busNumber, userId);
+                seatSelection.selectSeats();
             } else {
                 System.out.println("Sorry, the selected bus is already full.");
             }
         } else {
             System.out.println("Invalid bus number!");
+
         }
     }
 
@@ -231,17 +234,6 @@ class BusBooking {
         rs.close();
         pstmt.close();
     }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
