@@ -10,11 +10,11 @@ public class BusTracker {
 
     public static void main(String[] args) {
         try {
-          Connection conn = DatabaseConnection.getInstance().getConnection();
+            Connection conn = DatabaseConnection.getInstance().getConnection();
 
             Statement stmt = conn.createStatement();
 
-           UserAuth userAuth = new UserAuth(conn);
+            UserAuth userAuth = new UserAuth(conn);
             while (true) {
                 System.out.println("1. Login");
                 System.out.println("2. Sign up");
@@ -53,6 +53,24 @@ public class BusTracker {
                 e.printStackTrace();
             }
         }
+    }
+    private static void viewBookings(Connection conn) throws SQLException {
+        String sql = "SELECT b.id, u.name, bu.departure_station, bu.arrival_station, bu.time FROM bookings b " +
+                "JOIN users u ON b.user_id = u.id " +
+                "JOIN buses bu ON b.bus_id = bu.id";
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery(sql);
+
+        System.out.println("Booking ID | User Name | Departure Station | Arrival Station | Time");
+        while (rs.next()) {
+            System.out.printf("%-11s | %-9s | %-17s | %-15s | %s%n",
+                    rs.getInt("id"), rs.getString("name"),
+                    rs.getString("departure_station"), rs.getString("arrival_station"),
+                    rs.getString("time"));
+        }
+
+        rs.close();
+        stmt.close();
     }
 }
 
@@ -132,11 +150,13 @@ class MainMenu {
         MenuComponent busTrackerMenuItem = new MenuItem("2- Bus tracker");
         MenuComponent busCapacityMenuItem = new MenuItem("3- Bus capacity");
         MenuComponent logoutMenuItem = new MenuItem("4- Logout");
+        MenuComponent viewBookings = new MenuItem("5- Orders");
 
         mainMenu.add(bookBusMenuItem);
         mainMenu.add(busTrackerMenuItem);
         mainMenu.add(busCapacityMenuItem);
         mainMenu.add(logoutMenuItem);
+        mainMenu.add(viewBookings);
     }
 
     void showMainMenu() throws Exception {
@@ -160,11 +180,36 @@ class MainMenu {
                     break;
                 case 4:
                     return;
+                case 5:
+                    viewBookings(conn, userId); // Pass userId as a parameter
+                    break;
                 default:
                     System.out.println("Invalid choice!");
                     break;
             }
         }
+    }
+
+
+    private static void viewBookings(Connection conn, int userId) throws SQLException {
+        String sql = "SELECT b.id, u.name, bu.departure_station, bu.arrival_station, bu.time FROM bookings b " +
+                "JOIN users u ON b.user_id = u.id " +
+                "JOIN buses bu ON b.bus_id = bu.id " +
+                "WHERE b.user_id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, userId);
+        ResultSet rs = pstmt.executeQuery();
+
+        System.out.println("Booking ID | User Name | Departure Station | Arrival Station | Time");
+        while (rs.next()) {
+            System.out.printf("%-11s | %-9s | %-17s | %-15s | %s%n",
+                    rs.getInt("id"), rs.getString("name"),
+                    rs.getString("departure_station"), rs.getString("arrival_station"),
+                    rs.getString("time"));
+        }
+
+        rs.close();
+        pstmt.close();
     }
 }
 class BusBooking {
@@ -229,7 +274,7 @@ class BusBooking {
         System.out.println("Bus Number | Departure Station | Arrival Station | Time | seats_available");
         while (rs.next()) {
             String currentStation = rs.getString("departure_station");
-            System.out.printf("%-10s | %-17s | %-15s | %-15s | %-10s | %d%n",  rs.getInt("id"), rs.getString("departure_station"), rs.getString("arrival_station"), currentStation,   rs.getString("time"),rs.getInt("seats_available"));
+            System.out.printf("%-10s | %-17s | %-15s | %-15s | %-10s | %d%n", rs.getInt("id"), rs.getString("departure_station"), rs.getString("arrival_station"), currentStation, rs.getString("time"),rs.getInt("seats_available"));
         }
         rs.close();
         pstmt.close();
