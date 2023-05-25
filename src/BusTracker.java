@@ -149,13 +149,15 @@ class MainMenu {
         MenuComponent bookBusMenuItem = new MenuItem("1- Book a bus");
         MenuComponent busTrackerMenuItem = new MenuItem("2- Bus tracker");
         MenuComponent busCapacityMenuItem = new MenuItem("3- Bus capacity");
-        MenuComponent logoutMenuItem = new MenuItem("4- Logout");
-        MenuComponent viewBookings = new MenuItem("5- Orders");
+        MenuComponent logoutMenuItem = new MenuItem("4- Orders");
+        MenuComponent cancelOrderMenuItem = new MenuItem("5- Cancel an order");
+        MenuComponent viewBookings = new MenuItem("6- LogOut");
 
         mainMenu.add(bookBusMenuItem);
         mainMenu.add(busTrackerMenuItem);
         mainMenu.add(busCapacityMenuItem);
         mainMenu.add(logoutMenuItem);
+        mainMenu.add(cancelOrderMenuItem);
         mainMenu.add(viewBookings);
     }
 
@@ -178,10 +180,13 @@ class MainMenu {
                 case 3:
                     busBooking.BusCapacityAlert();
                     break;
-                case 4:
+                case 6:
                     return;
-                case 5:
+                case 4:
                     viewBookings(conn, userId); // Pass userId as a parameter
+                    break;
+                case 5:
+                    cancelOrder(conn, userId); // Call the cancelOrder method
                     break;
                 default:
                     System.out.println("Invalid choice!");
@@ -189,7 +194,25 @@ class MainMenu {
             }
         }
     }
+    private static void cancelOrder(Connection conn, int userId) throws SQLException {
+        System.out.print("Enter the booking ID to cancel: ");
+        int bookingId = BusTracker.scanner.nextInt();
+        BusTracker.scanner.nextLine();
 
+        String sql = "DELETE FROM bookings WHERE id = ? AND user_id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, bookingId);
+        pstmt.setInt(2, userId);
+        int rowsAffected = pstmt.executeUpdate();
+
+        if (rowsAffected > 0) {
+            System.out.println("Booking canceled successfully.");
+        } else {
+            System.out.println("Failed to cancel the booking. Please check the booking ID.");
+        }
+
+        pstmt.close();
+    }
 
     private static void viewBookings(Connection conn, int userId) throws SQLException {
         String sql = "SELECT b.id, u.name, bu.departure_station, bu.arrival_station, bu.time FROM bookings b " +
