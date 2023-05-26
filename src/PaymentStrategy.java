@@ -23,19 +23,36 @@ class CreditCardPayment implements PaymentStrategy {
     @Override
     public void processPayment() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("DONT Enter Card number");
-        String card = scanner.nextLine();
-        System.out.println("DONT Enter the name on Card ");
-        String name = scanner.nextLine();
-        System.out.println("DONT Enter the expire date ");
-        String date = scanner.nextLine();
-        System.out.println("DONT Enter the security code ");
-        int code = scanner.nextInt();
-        scanner.nextLine(); // Consume newline character
+        try {
+            System.out.println("Enter Card number");
+            String card = scanner.nextLine();
+            System.out.println("Enter the name on Card ");
+            String name = scanner.nextLine();
+            System.out.println("Enter the expire date ");
+            String date = scanner.nextLine();
+            System.out.println("Enter the security code ");
+            int code = scanner.nextInt();
+            scanner.nextLine(); // Consume newline character
 
-        paymentCompleted();
+            // Check if the entered information is valid
+            if (!isValidCardInfo(card, name, date, code)) {
+                throw new IllegalArgumentException("Invalid credit card information");
+            }
+
+            paymentCompleted();
+        } catch (Exception e) {
+            // Handle the exception
+            System.out.println("An error occurred during credit card payment, try again! ");
+            System.out.println("------------------------");
+        }
     }
 
+    private boolean isValidCardInfo(String card, String name, String date, int code) {
+        // Perform validation logic here
+        // Return true if the card information is valid, false otherwise
+        // You can implement your own validation checks for the card number, expiration date, etc.
+        return true; // Placeholder, replace with your validation code
+    }
     private void paymentCompleted() {
         try {
             String updateSql = "UPDATE buses SET seats_available = seats_available - ? WHERE id = ?";
@@ -52,6 +69,7 @@ class CreditCardPayment implements PaymentStrategy {
             pstmt.executeUpdate();
 
             System.out.println("Bus booked successfully!");
+            System.out.println("------------------------");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -74,9 +92,9 @@ class PayPalPayment implements PaymentStrategy {
     @Override
     public void processPayment() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("DONT Enter the Email");
+        System.out.println("DONT Enter the Email:");
         String email = scanner.nextLine();
-        System.out.println("DONT Enter the password ");
+        System.out.println("DONT Enter the password:");
         String password = scanner.nextLine();
 
         paymentCompleted();
@@ -98,6 +116,7 @@ class PayPalPayment implements PaymentStrategy {
             pstmt.executeUpdate();
 
             System.out.println("Bus booked successfully!");
+            System.out.println("------------------------");
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -120,9 +139,11 @@ class Payment {
     }
 
     void selectPaymentMethod() throws IllegalArgumentException {
+        System.out.println("------------------------");
         System.out.println("Payment methods:");
         System.out.println("1. Credit Card");
         System.out.println("2. PayPal");
+        System.out.println("------------------------");
         System.out.print("Enter the number of the payment method: ");
         int paymentMethod = BusTracker.scanner.nextInt();
         BusTracker.scanner.nextLine();
@@ -135,9 +156,11 @@ class Payment {
             strategy = new PayPalPayment(conn, userId, busNumber, numSeats);
         } else {
             System.out.println("Invalid payment method");
+            System.out.println("------------------------");
             return;
         }
 
         strategy.processPayment();
     }
 }
+
