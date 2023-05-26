@@ -16,9 +16,14 @@ public class BusTracker {
 
             UserAuth userAuth = new UserAuth(conn);
             while (true) {
+                System.out.println("|------------------------------------------|");
+                System.out.println(" Welcome to Makkah BusTracker Appplication!");
+                System.out.println("|------------------------------------------|");
+                System.out.println(" ");
                 System.out.println("1. Login");
                 System.out.println("2. Sign up");
                 System.out.println("3. Exit");
+                System.out.println(" ");
                 System.out.print("Enter your choice: ");
                 int choice = scanner.nextInt();
                 scanner.nextLine();
@@ -72,7 +77,9 @@ public class BusTracker {
         rs.close();
         stmt.close();
     }
+
 }
+
 
 class UserAuth {
     private final Connection conn;
@@ -144,14 +151,15 @@ class MainMenu {
     }
 
     private void buildMenu() {
+        System.out.println("------------------------");
         mainMenu = new Menu("Main Menu");
 
         MenuComponent bookBusMenuItem = new MenuItem("1- Book a bus");
         MenuComponent busTrackerMenuItem = new MenuItem("2- Bus tracker");
         MenuComponent busCapacityMenuItem = new MenuItem("3- Bus capacity");
-        MenuComponent logoutMenuItem = new MenuItem("4- Orders");
+        MenuComponent logoutMenuItem = new MenuItem("4- View booked busses");
         MenuComponent cancelOrderMenuItem = new MenuItem("5- Cancel an order");
-        MenuComponent viewBookings = new MenuItem("6- LogOut");
+        MenuComponent viewBookings = new MenuItem("6- Logout");
 
         mainMenu.add(bookBusMenuItem);
         mainMenu.add(busTrackerMenuItem);
@@ -166,6 +174,7 @@ class MainMenu {
 
         while (true) {
             mainMenu.display();
+            System.out.println("------------------------");
             System.out.print("Enter your choice: ");
             int choice = BusTracker.scanner.nextInt();
             BusTracker.scanner.nextLine();
@@ -189,33 +198,59 @@ class MainMenu {
                     cancelOrder(conn, userId); // Call the cancelOrder method
                     break;
                 default:
-                    System.out.println("Invalid choice!");
+                    System.out.println("Invalid choice! Try again...");
                     break;
             }
+
         }
     }
     private static void cancelOrder(Connection conn, int userId) throws SQLException {
-        System.out.print("Enter the booking ID to cancel: ");
+        System.out.print("Enter the booking ID you want to cancel:");
         int bookingId = BusTracker.scanner.nextInt();
         BusTracker.scanner.nextLine();
 
-        String sql = "DELETE FROM bookings WHERE id = ? AND user_id = ?";
+        String sql = "SELECT b.num_seats, bu.seats_available, b.bus_id FROM bookings b " +
+                "JOIN buses bu ON b.bus_id = bu.id " +
+                "WHERE b.id = ? AND b.user_id = ?";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setInt(1, bookingId);
         pstmt.setInt(2, userId);
-        int rowsAffected = pstmt.executeUpdate();
+        ResultSet rs = pstmt.executeQuery();
 
-        if (rowsAffected > 0) {
-            System.out.println("Booking canceled successfully.");
+        if (rs.next()) {
+            int numSeats = rs.getInt("num_seats");
+            int seatsAvailable = rs.getInt("seats_available");
+
+            sql = "DELETE FROM bookings WHERE id = ? AND user_id = ?";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, bookingId);
+            pstmt.setInt(2, userId);
+            int rowsAffected = pstmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                sql = "UPDATE buses SET seats_available = ? WHERE id = ?";
+                pstmt = conn.prepareStatement(sql);
+                pstmt.setInt(1, seatsAvailable + numSeats);
+                pstmt.setInt(2, rs.getInt("bus_id"));
+                pstmt.executeUpdate();
+
+                System.out.println("Booking canceled successfully. Number of seats increased.");
+                System.out.println("------------------------");
+            } else {
+                System.out.println("Failed to cancel the booking. Please check the booking ID from Orders menu.");
+                System.out.println("------------------------");
+            }
         } else {
-            System.out.println("Failed to cancel the booking. Please check the booking ID.");
+            System.out.println("Invalid booking ID or the booking does not belong to you.");
+            System.out.println("------------------------");
         }
+
 
         pstmt.close();
     }
 
     private static void viewBookings(Connection conn, int userId) throws SQLException {
-        String sql = "SELECT b.id, u.name, bu.departure_station, bu.arrival_station, bu.time FROM bookings b " +
+        String sql = "SELECT b.id, u.name, bu.departure_station, bu.arrival_station, bu.time, b.num_seats FROM bookings b " +
                 "JOIN users u ON b.user_id = u.id " +
                 "JOIN buses bu ON b.bus_id = bu.id " +
                 "WHERE b.user_id = ?";
@@ -223,13 +258,16 @@ class MainMenu {
         pstmt.setInt(1, userId);
         ResultSet rs = pstmt.executeQuery();
 
-        System.out.println("Booking ID | User Name | Departure Station | Arrival Station | Time");
+        System.out.println("-----------+------------+-------------------+-----------------+---------------+--------------");
+        System.out.println("Booking ID | Username  | Departure Station | Arrival Station  | Time          | Booked Seats");
+        System.out.println("-----------+------------+-------------------+-----------------+---------------+--------------");
         while (rs.next()) {
-            System.out.printf("%-11s | %-9s | %-17s | %-15s | %s%n",
+            System.out.printf("%-11s | %-10s | %-17s | %-15s | %-13s | %d%n",
                     rs.getInt("id"), rs.getString("name"),
                     rs.getString("departure_station"), rs.getString("arrival_station"),
-                    rs.getString("time"));
+                    rs.getString("time"), rs.getInt("num_seats"));
         }
+        System.out.println("-----------+------------+-------------------+-----------------+---------------+--------------");
 
         rs.close();
         pstmt.close();
@@ -245,18 +283,22 @@ class BusBooking {
         this.userId = userId;
     }
 
+
     void bookBus() throws Exception {
         String sql = "SELECT * FROM Buses";
         Statement stmt = conn.createStatement();
         rs = stmt.executeQuery(sql);
+
+        System.out.println("-----------+-------------------+-----------------+------+-----------------+-------");
         System.out.println("Bus Number | Departure Station | Arrival Station | Time | Seats Available | Price");
+        System.out.println("-----------+-------------------+-----------------+------+-----------------+-------");
         while (rs.next()) {
             int seatsAvailable = rs.getInt("seats_available");
-            System.out.printf("%-10s | %-17s | %-15s | %-10s |%-10s | %d%n",
+            System.out.printf("%-11s | %-17s | %-15s | %-4s | %-15s | %d%n",
                     rs.getInt("id"), rs.getString("departure_station"), rs.getString("arrival_station"),
-                    rs.getString("time"), rs.getInt("seats_available"),rs.getInt("Price"));
+                    rs.getString("time"), seatsAvailable, rs.getInt("price"));
         }
-
+        System.out.println("-----------+-------------------+-----------------+------+-----------------+-------");
         System.out.println("Enter the bus number you want to book, or type '0' to go back to the main menu:");
         int busNumber = BusTracker.scanner.nextInt();
         BusTracker.scanner.nextLine();
@@ -294,11 +336,16 @@ class BusBooking {
         PreparedStatement pstmt = conn.prepareStatement(sql);
         ResultSet rs = pstmt.executeQuery();
 
-        System.out.println("Bus Number | Departure Station | Arrival Station | Time | seats_available");
+        System.out.println("-----------+-------------------+-----------------+------+-----------------");
+        System.out.println("Bus Number | Departure Station | Arrival Station | Time | Seats Available");
+        System.out.println("-----------+-------------------+-----------------+------+-----------------");
         while (rs.next()) {
             String currentStation = rs.getString("departure_station");
-            System.out.printf("%-10s | %-17s | %-15s | %-15s | %-10s | %d%n", rs.getInt("id"), rs.getString("departure_station"), rs.getString("arrival_station"), currentStation, rs.getString("time"),rs.getInt("seats_available"));
+            System.out.printf("%-11s | %-17s | %-15s | %-4s | %-15s%n",
+                    rs.getInt("id"), rs.getString("departure_station"), rs.getString("arrival_station"),
+                    rs.getString("time"), rs.getInt("seats_available"));
         }
+        System.out.println("-----------+-------------------+-----------------+------+-----------------");
         rs.close();
         pstmt.close();
     }
@@ -310,13 +357,14 @@ class BusBooking {
         PreparedStatement pstmt = conn.prepareStatement(sql);
         ResultSet rs = pstmt.executeQuery();
 
-        System.out.println("Bus Number | Departure Station | Arrival Station | Time | seats_available");
+        System.out.println("Bus Number | Departure Station | Arrival Station | Time | Seats Available");
+        System.out.println("-----------+-------------------+-----------------+------+-----------------");
         while (rs.next()) {
-            System.out.printf("%-10s | %-17s | %-15s | %-10s | %d%n",
+            System.out.printf("%-11s | %-17s | %-15s | %-4s | %d%n",
                     rs.getInt("id"), rs.getString("departure_station"), rs.getString("arrival_station"),
                     rs.getString("time"), rs.getInt("seats_available"));
         }
-
+        System.out.println("-----------+-------------------+-----------------+------+-----------------");
 
         int CAPACITY = 1;
         int busNumber = 0;
@@ -331,15 +379,18 @@ class BusBooking {
                 break;
             }
             int passengerCount = getPassengerCount(busNumber);
-            System.out.println(passengerCount);
+
 
             if (passengerCount <= CAPACITY) {
                 System.out.println("Bus #" + busNumber + " has reached capacity.");
+                System.out.println("--------------------------------------------------------------------------");
             } else if (passengerCount <= CAPACITY * 10) {
-                System.out.println("Bus #" + busNumber + " is getting crowded. Consider waiting for the next bus.");
+                System.out.println("Bus #" + busNumber + " is getting crowded, there are only " + (passengerCount)  + " seats, "  + "Consider waiting for the next bus.");
+                System.out.println("--------------------------------------------------------------------------");
             }
             else {
-                System.out.println("Bus #" + busNumber + " is not crowded.");
+                System.out.println("Bus #" + busNumber + " is not crowded, there are ("+ passengerCount + ") seats available.");
+                System.out.println("--------------------------------------------------------------------------");
             }
         }
         rs.close();
