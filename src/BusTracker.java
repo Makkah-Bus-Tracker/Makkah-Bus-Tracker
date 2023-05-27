@@ -237,12 +237,35 @@ class MainMenu {
     private static void accountDetails(Connection conn, int userId) throws SQLException {
         boolean isValidChoice = false;
 
+        System.out.println("------------------------");
+        System.out.println("User Profile");
+        System.out.println("------------------------");
+
+        // Fetch user details from the database
+        String sql = "SELECT name, email, password FROM users WHERE id = ?";
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, userId);
+        ResultSet rs = pstmt.executeQuery();
+
+        if (rs.next()) {
+            String name = rs.getString("name");
+            String email = rs.getString("email");
+            String password = rs.getString("password");
+
+            // Print user details
+            System.out.println("Name: " + name);
+            System.out.println("Email: " + email);
+            System.out.println("Password: " + password);
+        }
+
+
         while (!isValidChoice) {
             System.out.println("------------------------");
             System.out.println("1. Change Password");
             System.out.println("2. Change Username");
+            System.out.println("3. Change Email");
             System.out.println("------------------------");
-            System.out.print("Enter your choice: ");
+            System.out.print("Enter your choice (-1 to exit): ");
 
             int accountChoice;
             try {
@@ -255,6 +278,11 @@ class MainMenu {
                 continue;
             }
 
+            if (accountChoice == -1){
+                System.out.println("------------------------");
+                break;
+            }
+
             switch (accountChoice) {
                 case 1:
                     changePassword(conn, userId); // Call the changePassword method
@@ -262,6 +290,10 @@ class MainMenu {
                     break;
                 case 2:
                     changeUsername(conn, userId); // Call the changeUsername method
+                    isValidChoice = true;
+                    break;
+                case 3:
+                    changeEmail(conn, userId); // Call the changeUsername method
                     isValidChoice = true;
                     break;
                 default:
@@ -278,22 +310,34 @@ class MainMenu {
             System.out.print("Enter your new password: ");
             String newPassword = BusTracker.scanner.nextLine();
 
-            String sql = "UPDATE users SET password = ? WHERE id = ? AND password = ?";
-            PreparedStatement pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, newPassword);
-            pstmt.setInt(2, userId);
-            pstmt.setString(3, currentPassword);
-            int rowsAffected = pstmt.executeUpdate();
+            String checkSql = "SELECT id FROM users WHERE password = ?";
+            PreparedStatement checkPstmt = conn.prepareStatement(checkSql);
+            checkPstmt.setString(1, newPassword);
+            ResultSet checkRs = checkPstmt.executeQuery();
 
-            if (rowsAffected > 0) {
-                System.out.println("Password changed successfully!");
+            if (checkRs.next()) {
+                System.out.println("The new password already exists. Please enter a different password. ");
                 System.out.println("------------------------");
-            } else {
-                System.out.println("Failed to change the password. Please make sure your current password is correct.");
-                System.out.println("------------------------");
+                changePassword(conn, userId);
+            }else {
+
+                String sql = "UPDATE users SET password = ? WHERE id = ? AND password = ?";
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, newPassword);
+                pstmt.setInt(2, userId);
+                pstmt.setString(3, currentPassword);
+                int rowsAffected = pstmt.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    System.out.println("Password changed successfully!");
+                    System.out.println("------------------------");
+                } else {
+                    System.out.println("Failed to change the password. Please make sure your current password is correct.");
+                    System.out.println("------------------------");
+                }
+
+                pstmt.close();
             }
-
-            pstmt.close();
         } catch (SQLException e) {
             System.out.println("An error occurred while changing the password: " + e.getMessage());
             System.out.println("------------------------");
@@ -313,6 +357,7 @@ class MainMenu {
         if (checkRs.next()) {
             System.out.println("Username already exists. Please choose a different username.");
             System.out.println("------------------------");
+            changeUsername(conn, userId);
         } else {
             String sql = "UPDATE users SET name = ? WHERE id = ?";
             PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -325,6 +370,41 @@ class MainMenu {
                 System.out.println("------------------------");
             } else {
                 System.out.println("Failed to change the username. Please try again.");
+                System.out.println("------------------------");
+            }
+
+            pstmt.close();
+        }
+
+        checkRs.close();
+        checkPstmt.close();
+    }
+
+    private static void changeEmail(Connection conn, int userId) throws SQLException {
+        System.out.print("Enter your new email: ");
+        String newEmail = BusTracker.scanner.nextLine();
+
+        String checkSql = "SELECT id FROM users WHERE email = ?";
+        PreparedStatement checkPstmt = conn.prepareStatement(checkSql);
+        checkPstmt.setString(1, newEmail);
+        ResultSet checkRs = checkPstmt.executeQuery();
+
+        if (checkRs.next()) {
+            System.out.println("Email already exists. Please choose a different email.");
+            System.out.println("------------------------");
+            changeEmail(conn, userId);
+        } else {
+            String sql = "UPDATE users SET email = ? WHERE id = ?";
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, newEmail);
+            pstmt.setInt(2, userId);
+            int rowsAffected = pstmt.executeUpdate();
+
+            if (rowsAffected > 0) {
+                System.out.println("Email changed successfully!");
+                System.out.println("------------------------");
+            } else {
+                System.out.println("Failed to change the Email. Please try again.");
                 System.out.println("------------------------");
             }
 
