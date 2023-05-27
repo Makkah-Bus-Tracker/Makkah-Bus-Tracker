@@ -28,7 +28,7 @@ public abstract class MenuComponent {
 
 
 
- class Menu extends MenuComponent {
+class Menu extends MenuComponent {
     private List<MenuComponent> menuComponents;
 
     public Menu(String name) {

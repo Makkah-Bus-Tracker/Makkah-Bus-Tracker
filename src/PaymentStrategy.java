@@ -41,8 +41,7 @@ class CreditCardPayment implements PaymentStrategy {
 
             paymentCompleted();
         } catch (Exception e) {
-            // Handle the exception
-            System.out.println("An error occurred during credit card payment, try again! ");
+            System.out.println("An error occurred during credit card payment. Please try again.");
             System.out.println("------------------------");
         }
     }
@@ -53,6 +52,7 @@ class CreditCardPayment implements PaymentStrategy {
         // You can implement your own validation checks for the card number, expiration date, etc.
         return true; // Placeholder, replace with your validation code
     }
+
     private void paymentCompleted() {
         try {
             String updateSql = "UPDATE buses SET seats_available = seats_available - ? WHERE id = ?";
@@ -92,12 +92,29 @@ class PayPalPayment implements PaymentStrategy {
     @Override
     public void processPayment() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("DONT Enter the Email:");
-        String email = scanner.nextLine();
-        System.out.println("DONT Enter the password:");
-        String password = scanner.nextLine();
+        try {
+            System.out.println("Enter the Email:");
+            String email = scanner.nextLine();
+            System.out.println("Enter the password:");
+            String password = scanner.nextLine();
 
-        paymentCompleted();
+            // Check if the entered information is valid
+            if (!isValidPayPalInfo(email, password)) {
+                throw new IllegalArgumentException("Invalid PayPal information");
+            }
+
+            paymentCompleted();
+        } catch (Exception e) {
+            System.out.println("An error occurred during PayPal payment. Please try again.");
+            System.out.println("------------------------");
+        }
+    }
+
+    private boolean isValidPayPalInfo(String email, String password) {
+        // Perform validation logic here
+        // Return true if the PayPal information is valid, false otherwise
+        // You can implement your own validation checks for the email, password, etc.
+        return true; // Placeholder, replace with your validation code
     }
 
     private void paymentCompleted() {
@@ -163,4 +180,3 @@ class Payment {
         strategy.processPayment();
     }
 }
-
