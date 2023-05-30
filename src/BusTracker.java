@@ -125,6 +125,8 @@ class UserAuth {
         }
     }
 
+
+
     void signup() throws Exception {
         System.out.print("Enter your name: ");
         String name = BusTracker.scanner.nextLine();
@@ -437,7 +439,7 @@ class MainMenu {
 
                 if (rs.next()) {
                     int numSeats = rs.getInt("num_seats");
-                    int seatsAvailable = rs.getInt("seats_available");
+                    int seatsAvailable = rs.getInt("seats_available ");
 
                     sql = "DELETE FROM bookings WHERE id = ? AND user_id = ?";
                     pstmt = conn.prepareStatement(sql);
